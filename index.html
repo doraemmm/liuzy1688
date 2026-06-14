@@ -579,31 +579,22 @@
 </div>
 
 <div class="page-end"></div>
-
 <script>
   // ═══════════════════════════════════════════════════════════
-  // 配置區（請務必確認 SHEET_ID 與 GAS_URL 是否完全正確）
+  // 配置區（請務必把 GAS_URL 換成你重新部署後的最新網址！）
   // ═══════════════════════════════════════════════════════════
-  const SHEET_ID = '1yytw3nVfDP1HMDoLGNDR-fEepmkwDjjo6L6b5lUGka8';
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJUNZkS6QVnb5H4gue9Pn3jPOp1rnFT6iZ71n0HzHOdzv0wB-cQ3yFb84jbWIJxkw/exec'; 
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyDDyfQmDO4ze_5X4Ip9HNB4diZZIFDbxw7wgdOpS7QBbdSDUFjprdUHgzWdvzmRSlC/exec'; 
 
-  // ═══════════════════════════════════════════════════════════
-  // 全局變數
-  // ═══════════════════════════════════════════════════════════
   let allRecords = [];
 
-  // ═══════════════════════════════════════════════════════════
-  // 初始化
-  // ═══════════════════════════════════════════════════════════
+  // 初始化日期為今天
   document.getElementById('date-active').value = new Date().toISOString().split('T')[0];
 
   window.addEventListener('load', () => {
     fetchSheetData();
   });
 
-  // ═══════════════════════════════════════════════════════════
-  // 滑塊更新顯示值（100% 立即即時連動，絕不卡死）
-  // ═══════════════════════════════════════════════════════════
+  // 滑塊即時更新顯示值
   function updateSliderLabel(id) {
     const slider = document.getElementById(id);
     const valDisplay = document.getElementById(id + '-val');
@@ -612,27 +603,17 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
   // 日期解析
-  // ═══════════════════════════════════════════════════════════
   function parseDateString(ds) {
     if (!ds) return 0;
     let s = ds.replace(/-/g, '/').trim();
     let parts = s.split('/');
     let y = new Date().getFullYear(), m = 0, d = 1;
     if (parts.length === 3) {
-      if (parts[0].length === 4) {
-        y = parseInt(parts[0], 10);
-        m = parseInt(parts[1], 10) - 1;
-        d = parseInt(parts[2], 10);
-      } else if (parts[2].length === 4) {
-        m = parseInt(parts[0], 10) - 1;
-        d = parseInt(parts[1], 10);
-        y = parseInt(parts[2], 10);
-      }
+      if (parts[0].length === 4) { y = parseInt(parts[0], 10); m = parseInt(parts[1], 10) - 1; d = parseInt(parts[2], 10); }
+      else if (parts[2].length === 4) { m = parseInt(parts[0], 10) - 1; d = parseInt(parts[1], 10); y = parseInt(parts[2], 10); }
     } else if (parts.length === 2) {
-      m = parseInt(parts[0], 10) - 1;
-      d = parseInt(parts[1], 10);
+      m = parseInt(parts[0], 10) - 1; d = parseInt(parts[1], 10);
     } else {
       let t = new Date(ds).getTime();
       return isNaN(t) ? 0 : t;
@@ -641,46 +622,32 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 突破 CORS 限制：改用發行到網路的 JSONP 或是純 CSV 純文字解析
+  // 透過 GAS 的 doGet 撈資料，100% 免疫任何瀏覽器的 CORS 阻擋
   // ═══════════════════════════════════════════════════════════
   async function fetchSheetData() {
     const tbody = document.getElementById('history-tbody');
-    // 使用 Google Sheet 發布到網路的純文字 CSV 網址（這種網址通常對跨域限制較寬鬆）
-    const publishCsvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/pub?output=csv`;
-    
     try {
-      // 加上 cache: "no-cache" 防止瀏覽器耍自閉拿舊資料
-      const res = await fetch(publishCsvUrl, { cache: "no-cache" });
+      // 透過 GET 請求去戳 GAS，GAS 撈到資料後會回傳 JSON 陣列
+      const res = await fetch(GAS_URL, { method: 'GET' });
       if (!res.ok) throw new Error('網路回應不成功');
-      const csv = await res.text();
+      const data = await res.json();
       
-      const rows = csv.split(/\r?\n/).map(r => r.trim()).filter(r => r.length > 0);
-      const uniqueRecords = new Map();
-      
-      for (let i = 1; i < rows.length; i++) {
-        const cols = rows[i].split(',').map(s => s.replace(/^"|"$/g, '').trim());
-        if (cols[0] && cols.length >= 7) {
-          const timeKey = parseDateString(cols[0]);
-          if (timeKey > 0) {
-            uniqueRecords.set(timeKey, cols);
-          }
-        }
+      if (data.error) {
+        throw new Error(data.error);
       }
-      
-      allRecords = Array.from(uniqueRecords.values());
+
+      allRecords = data;
+      // 依照日期從新到舊排序
       allRecords.sort((a, b) => parseDateString(b[0]) - parseDateString(a[0]));
       
       renderHistoryTable();
     } catch (e) {
-      console.error('第一階段 CSV 載入失敗，啟動備用手段:', e);
-      // 如果連發布的 CSV 都被擋，直接彈性改用 iframe 或者是直接提示錯誤
-      tbody.innerHTML = `<tr><td colspan="7" style="padding: 40px; color: var(--accent-red);">❌ 讀取失敗！瀏覽器安全性（CORS）阻擋了本地檔案存取。請嘗試將此 html 檔案上傳到伺服器空間，或是用無痕視窗開啟！</td></tr>`;
+      console.error('資料載入失敗:', e);
+      tbody.innerHTML = `<tr><td colspan="7" style="padding: 40px; color: var(--accent-red);">❌ 歷史紀錄載入失敗！請確認 GAS 後端是否有正常部署，且 index.html 中的 GAS_URL 是否填寫正確！</td></tr>`;
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
   // 渲染歷史紀錄表
-  // ═══════════════════════════════════════════════════════════
   function renderHistoryTable() {
     const tbody = document.getElementById('history-tbody');
     tbody.innerHTML = '';
@@ -717,9 +684,7 @@
     });
   }
 
-  // ═══════════════════════════════════════════════════════════
   // 送出表單
-  // ═══════════════════════════════════════════════════════════
   async function submitForm() {
     const password = document.getElementById('write-password').value.trim();
     if (!password) {
@@ -751,6 +716,7 @@
       });
 
       showMsg('📨 資料已送出！正在同步後端資料...', 'warn');
+      // 延遲 2.5 秒給後端試算表更新時間，再重新抓取
       await new Promise(r => setTimeout(r, 2500));
       await fetchSheetData();
       showMsg('✅ 寫入成功！歷史紀錄已更新', 'ok');
