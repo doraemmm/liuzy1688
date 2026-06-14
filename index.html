@@ -120,7 +120,8 @@
     white-space: nowrap;
   }
 
-  .form-field input[type="date"] {
+  .form-field input[type="date"],
+  .form-field input[type="text"] {
     width: 100%;
     padding: 10px 12px;
     background: var(--cream);
@@ -133,7 +134,8 @@
     box-sizing: border-box;
   }
 
-  .form-field input[type="date"]:focus {
+  .form-field input[type="date"]:focus,
+  .form-field input[type="text"]:focus {
     border-color: var(--mood-color);
     box-shadow: 0 0 0 3px var(--mood-pale);
     background: #fff;
@@ -193,17 +195,6 @@
   input[type="range"]::-moz-range-thumb:hover {
     transform: scale(1.2);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  }
-
-  input[type="range"]::-moz-range-track {
-    background: transparent;
-    border: none;
-  }
-
-  input[type="range"]::-moz-range-progress {
-    background: linear-gradient(to right, #f0e8e0, var(--mood-color));
-    height: 6px;
-    border-radius: 3px;
   }
 
   .slider-value {
@@ -318,13 +309,12 @@
     transition: all 0.3s ease;
   }
 
-/* ─── 歷史紀錄表（修正日期欄重疊與透光問題） ─── */
   table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
     font-size: 0.85rem;
-    min-width: 600px;
+    min-width: 750px; /* 增加寬度以包容備註欄位 */
   }
 
   thead th {
@@ -341,11 +331,10 @@
     color: var(--ink-light);
   }
 
-  /* 表頭的第一個單元格（日期的標題）也必須是不透明且層級最高 */
   thead th:first-child {
     position: sticky;
     left: 0;
-    z-index: 12; /* 提高層級，確保滾動時壓過所有東西 */
+    z-index: 12;
     background: #e6e0d3 !important;
     box-shadow: 2px 2px 0 var(--border);
   }
@@ -358,36 +347,40 @@
     font-weight: 700;
   }
 
-  /* 【核心修正】第一欄（日期欄）單元格：強制 100% 不透明 */
   tbody td:first-child {
     position: sticky;
     left: 0;
     z-index: 9;
-    background-color: #faf7f2 !important; /* 使用 var(--warm-white) 的不透明實色 */
+    background-color: #faf7f2 !important;
     font-weight: 900;
-    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06); /* 右側陰影邊界 */
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
   }
 
-  /* 奇偶數行交替背景色（同樣要確保第一欄不被透明度搞砸） */
   tbody tr:nth-child(even) td {
     background-color: rgba(0, 0, 0, 0.015);
   }
 
-  /* 偶數行的第一欄：同樣要給它一個 100% 不透明的實色，避免透光 */
   tbody tr:nth-child(even) td:first-child {
-    background-color: #f5f0e8 !important; /* 使用 var(--cream) 的不透明實色做交替 */
+    background-color: #f5f0e8 !important;
   }
 
-  /* 滑鼠懸停效果：滑過去時第一欄也要跟著變色，但依優保持不透明 */
   tbody tr:hover td {
     background-color: rgba(0, 0, 0, 0.04);
   }
 
   tbody tr:hover td:first-child {
-    background-color: #dad2c4 !important; /* 懸停時的第一欄深色不透明背景 */
+    background-color: #dad2c4 !important;
   }
 
-  /* ─── 【需求 2】按鈕 UI 客製化樣式外觀 ─── */
+  /* 備註文字向左對齊以利閱讀 */
+  .td-note {
+    text-align: left !important;
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .toggle-container {
     text-align: center;
     padding: 20px 0;
@@ -419,53 +412,22 @@
   }
 
   @keyframes fadeUp {
-    from {
-      opacity: 0;
-      transform: translateY(16px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .form-card {
     animation: fadeUp 0.5s ease both;
   }
 
-  /* ─── RWD ─── */
   @media (max-width: 640px) {
-    header {
-      padding: 28px 20px 24px;
-    }
-
-    .form-container,
-    .section-head,
-    .log-container {
-      padding: 0 20px;
-    }
-
-    .form-card {
-      padding: 20px 16px;
-    }
-
-    .form-field-row {
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-
-    table {
-      font-size: 0.75rem;
-      min-width: 500px;
-    }
-
-    thead th {
-      padding: 8px 6px;
-    }
-
-    tbody td {
-      padding: 8px 6px;
-    }
+    header { padding: 28px 20px 24px; }
+    .form-container, .section-head, .log-container { padding: 0 20px; }
+    .form-card { padding: 20px 16px; }
+    .form-field-row { grid-template-columns: 1fr; gap: 12px; }
+    table { font-size: 0.75rem; min-width: 650px; }
+    thead th { padding: 8px 6px; }
+    tbody td { padding: 8px 6px; }
   }
 </style>
 </head>
@@ -474,7 +436,7 @@
 <header>
   <div class="header-inner">
     <div class="title-block">
-      <h1>貼心寶貝🐷老公情緒日誌</h1>
+      <h1>老公情緒日誌</h1>
       <p class="subtitle">用心記錄每一天的情緒波動</p>
     </div>
   </div>
@@ -554,6 +516,11 @@
     </div>
 
     <div class="form-field">
+      <label>📝 備註</label>
+      <input type="text" id="note" placeholder="寫點今天發生了什麼事吧...">
+    </div>
+
+    <div class="form-field">
       <label>密碼</label>
       <input type="password" id="write-password" placeholder="請輸入密碼">
     </div>
@@ -577,10 +544,10 @@
           <th>客怨</th>
           <th>暴飲暴食</th>
           <th>情緒控制</th>
-        </tr>
+          <th>備註</th> </tr>
       </thead>
       <tbody id="history-tbody">
-        <tr><td colspan="7" style="padding: 40px; color: var(--mood-color);">⏳ 資料努力載入中...</td></tr>
+        <tr><td colspan="8" style="padding: 40px; color: var(--mood-color);">⏳ 資料努力載入中...</td></tr>
       </tbody>
     </table>
   </div>
@@ -596,7 +563,7 @@
 
 <script>
   // ═══════════════════════════════════════════════════════════
-  // 配置區（請務必把 GAS_URL 換成你重新部署後的最新網址！）
+  // 配置區
   // ═══════════════════════════════════════════════════════════
   const SHEET_ID = '1yytw3nVfDP1HMDoLGNDR-fEepmkwDjjo6L6b5lUGka8';
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJUNZkS6QVnb5H4gue9Pn3jPOp1rnFT6iZ71n0HzHOdzv0wB-cQ3yFb84jbWIJxkw/exec'; 
@@ -645,7 +612,7 @@
     let bg = '';
     let text = '#1a1410'; 
 
-    if (val === 0) { bg = '#ffffff'; }
+    if (val === 0) { bg = '#00ff00'; }
     else if (val >= 1 && val <= 3) { bg = '#b6d7a8'; }
     else if (val >= 4 && val <= 6) { bg = '#ffff00'; }
     else if (val >= 7 && val <= 9) { bg = '#e06666'; text = '#ffffff'; }
@@ -670,17 +637,17 @@
       renderHistoryTable();
     } catch (e) {
       console.error('資料載入失敗:', e);
-      tbody.innerHTML = `<tr><td colspan="7" style="padding: 40px; color: var(--accent-red);">❌ 歷史紀錄載入失敗，請確認後端部署狀態！</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="padding: 40px; color: var(--accent-red);">❌ 歷史紀錄載入失敗，請確認後端部署狀態！</td></tr>`;
     }
   }
 
-  // 渲染歷史紀錄表（預設顯示最舊前 10 條）
+  // 渲染歷史紀錄表
   function renderHistoryTable() {
     const tbody = document.getElementById('history-tbody');
     tbody.innerHTML = '';
     
     if (allRecords.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="padding:40px; color:var(--ink-light);">還沒有紀錄呢～</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="padding:40px; color:var(--ink-light);">還沒有紀錄呢～</td></tr>`;
       return;
     }
 
@@ -697,6 +664,7 @@
       const complaint = record[4] || '0';
       const binge = record[5] || '0';
       const control = record[6] || '0';
+      const note = record[7] || ''; // 📝 讀取第 8 欄備註資料
       
       tbody.innerHTML += `
         <tr>
@@ -707,7 +675,7 @@
           <td ${getColorStyle(complaint)}>${complaint}</td>
           <td ${getColorStyle(binge)}>${binge}</td>
           <td ${getColorStyle(control)}>${control}</td>
-        </tr>
+          <td class="td-note" title="${note}">${note}</td> </tr>
       `;
     });
 
@@ -727,9 +695,7 @@
     renderHistoryTable();
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🚀 核心大改版：發送純文字繞過 CORS，並精準解析密碼對錯！
-  // ═══════════════════════════════════════════════════════════
+  // 送出表單 (包含備註欄位)
   async function submitForm() {
     const password = document.getElementById('write-password').value.trim();
     if (!password) {
@@ -750,10 +716,10 @@
       complaint: parseInt(document.getElementById('complaint').value) || 0,
       binge: parseInt(document.getElementById('binge').value) || 0,
       control: parseInt(document.getElementById('control').value) || 0,
+      note: document.getElementById('note').value.trim() // 📝 【新核心】打包備註文字送出
     };
 
     try {
-      // 用 text/plain 發送，避開瀏覽器的 Options 預檢，保證 GAS 能順利收到！
       const res = await fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
@@ -767,9 +733,8 @@
       if (result.ok === true) {
         showMsg('✅ 寫入成功！歷史紀錄已同步更新', 'ok');
         resetForm();
-        await fetchSheetData(); // 成功才刷新歷史紀錄表
+        await fetchSheetData(); 
       } else {
-        // 這邊就能鐵證如山地抓到 GAS 回傳的「密碼錯誤」！
         showMsg(`❌ 送出失敗：${result.msg || '密碼錯誤！'}`, 'err');
       }
 
@@ -787,6 +752,7 @@
       document.getElementById(id).value = 0;
       updateSliderLabel(id);
     });
+    document.getElementById('note').value = ''; // 📝 重置清空備註框
     document.getElementById('write-password').value = '';
     document.getElementById('date-active').value = new Date().toISOString().split('T')[0];
   }
@@ -804,6 +770,3 @@
     }
   }
 </script>
-
-</body>
-</html>
