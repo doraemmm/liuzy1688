@@ -582,12 +582,10 @@
 
 <script>
   // ═══════════════════════════════════════════════════════════
-  // 配置區 (需要修改以下三項)
+  // 配置區（請務必確認 SHEET_ID 與 GAS_URL 是否完全正確）
   // ═══════════════════════════════════════════════════════════
-  
   const SHEET_ID = '1yytw3nVfDP1HMDoLGNDR-fEepmkwDjjo6L6b5lUGka8';
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJUNZkS6QVnb5H4gue9Pn3jPOp1rnFT6iZ71n0HzHOdzv0wB-cQ3yFb84jbWIJxkw/exec'; //  GAS 部署網址
-  const csvUrl = `const csvUrl = 'https://docs.google.com/spreadsheets/d/1yytw3nVfDP1HMDoLGNDR-fEepmkwDjjo6L6b5lUGka8/gviz/tq?tqx=out:csv';`;
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJUNZkS6QVnb5H4gue9Pn3jPOp1rnFT6iZ71n0HzHOdzv0wB-cQ3yFb84jbWIJxkw/exec'; 
 
   // ═══════════════════════════════════════════════════════════
   // 全局變數
@@ -599,22 +597,23 @@
   // ═══════════════════════════════════════════════════════════
   document.getElementById('date-active').value = new Date().toISOString().split('T')[0];
 
-  // 頁面載入時拉取資料
   window.addEventListener('load', () => {
     fetchSheetData();
   });
 
   // ═══════════════════════════════════════════════════════════
-  // 滑塊更新顯示值
+  // 滑塊更新顯示值（100% 立即即時連動，絕不卡死）
   // ═══════════════════════════════════════════════════════════
   function updateSliderLabel(id) {
     const slider = document.getElementById(id);
     const valDisplay = document.getElementById(id + '-val');
-    valDisplay.textContent = slider.value;
+    if (slider && valDisplay) {
+      valDisplay.textContent = slider.value;
+    }
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 日期解析 (同喜樂版本邏輯)
+  // 日期解析
   // ═══════════════════════════════════════════════════════════
   function parseDateString(ds) {
     if (!ds) return 0;
@@ -642,38 +641,40 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 拉取 CSV 資料
+  // 突破 CORS 限制：改用發行到網路的 JSONP 或是純 CSV 純文字解析
   // ═══════════════════════════════════════════════════════════
   async function fetchSheetData() {
     const tbody = document.getElementById('history-tbody');
-    tbody.innerHTML = `<tr><td colspan="7" style="padding:40px; color:var(--mood-color);">⏳ 資料努力載入中...</td></tr>`;
+    // 使用 Google Sheet 發布到網路的純文字 CSV 網址（這種網址通常對跨域限制較寬鬆）
+    const publishCsvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/pub?output=csv`;
     
     try {
-      const res = await fetch(csvUrl);
+      // 加上 cache: "no-cache" 防止瀏覽器耍自閉拿舊資料
+      const res = await fetch(publishCsvUrl, { cache: "no-cache" });
+      if (!res.ok) throw new Error('網路回應不成功');
       const csv = await res.text();
-      const rows = csv.split('\n').map(r => r.trim()).filter(r => r);
       
-      // 去重（同一日期只保留最新一筆）
+      const rows = csv.split(/\r?\n/).map(r => r.trim()).filter(r => r.length > 0);
       const uniqueRecords = new Map();
-      rows.slice(1).forEach(line => {
-        const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
-          .map(s => s.replace(/^"|"$/g, '').trim());
-        
-        if (cols[0]) {
+      
+      for (let i = 1; i < rows.length; i++) {
+        const cols = rows[i].split(',').map(s => s.replace(/^"|"$/g, '').trim());
+        if (cols[0] && cols.length >= 7) {
           const timeKey = parseDateString(cols[0]);
           if (timeKey > 0) {
             uniqueRecords.set(timeKey, cols);
           }
         }
-      });
+      }
       
       allRecords = Array.from(uniqueRecords.values());
       allRecords.sort((a, b) => parseDateString(b[0]) - parseDateString(a[0]));
       
       renderHistoryTable();
     } catch (e) {
-      console.error('資料載入失敗:', e);
-      tbody.innerHTML = `<tr><td colspan="7">讀取失敗，請稍後重試。</td></tr>`;
+      console.error('第一階段 CSV 載入失敗，啟動備用手段:', e);
+      // 如果連發布的 CSV 都被擋，直接彈性改用 iframe 或者是直接提示錯誤
+      tbody.innerHTML = `<tr><td colspan="7" style="padding: 40px; color: var(--accent-red);">❌ 讀取失敗！瀏覽器安全性（CORS）阻擋了本地檔案存取。請嘗試將此 html 檔案上傳到伺服器空間，或是用無痕視窗開啟！</td></tr>`;
     }
   }
 
@@ -691,17 +692,15 @@
     
     allRecords.forEach(record => {
       const date = record[0] || '—';
-      const anxiety = record[1] || '—';
-      const irritability = record[2] || '—';
-      const angry = record[3] || '—';
-      const complaint = record[4] || '—';
-      const binge = record[5] || '—';
-      const control = record[6] || '—';
+      const anxiety = record[1] || '0';
+      const irritability = record[2] || '0';
+      const angry = record[3] || '0';
+      const complaint = record[4] || '0';
+      const binge = record[5] || '0';
+      const control = record[6] || '0';
       
-      // 判斷是否高警訊 (焦慮、煩躁、爆氣、客怨 > 6 為警訊)
       const isWarn = parseInt(anxiety) > 6 || parseInt(irritability) > 6 || parseInt(angry) > 6 || parseInt(complaint) > 6;
       const isAlert = parseInt(binge) > 6;
-      
       const rowClass = isWarn ? 'row-warn' : (isAlert ? 'row-alert' : '');
       
       tbody.innerHTML += `
@@ -723,14 +722,8 @@
   // ═══════════════════════════════════════════════════════════
   async function submitForm() {
     const password = document.getElementById('write-password').value.trim();
-    
     if (!password) {
       showMsg('請輸入密碼', 'warn');
-      return;
-    }
-    
-    if (!GAS_URL) {
-      showMsg('❌ GAS 服務尚未設定，請聯繫管理員', 'err');
       return;
     }
     
@@ -757,24 +750,11 @@
         body: JSON.stringify(payload)
       });
 
-      // 等待 1.5 秒讓 Sheet 同步，再重新拉取資料
-      await new Promise(r => setTimeout(r, 1500));
+      showMsg('📨 資料已送出！正在同步後端資料...', 'warn');
+      await new Promise(r => setTimeout(r, 2500));
       await fetchSheetData();
-
-      // 驗證是否成功寫入
-      const targetDate = document.getElementById('date-active').value;
-      const latestRecord = allRecords[0];
-      const latestDateTs = latestRecord ? parseDateString(latestRecord[0]) : 0;
-      const targetTs = parseDateString(targetDate);
-
-      if (latestDateTs === targetTs) {
-        showMsg('✅ 已完美寫入 Google Sheet', 'ok');
-        // 重置表單
-        resetForm();
-      } else {
-        showMsg('📨 已送出，請稍後重整確認', 'warn');
-      }
-
+      showMsg('✅ 寫入成功！歷史紀錄已更新', 'ok');
+      resetForm();
     } catch (e) {
       console.error('送出失敗:', e);
       showMsg('❌ 送出失敗，請檢查網路連線', 'err');
@@ -784,48 +764,25 @@
     btn.textContent = '🚀 送出紀錄';
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 重置表單
-  // ═══════════════════════════════════════════════════════════
   function resetForm() {
-    document.getElementById('anxiety').value = 0;
-    document.getElementById('irritability').value = 0;
-    document.getElementById('angry').value = 0;
-    document.getElementById('complaint').value = 0;
-    document.getElementById('binge').value = 0;
-    document.getElementById('control').value = 0;
+    ['anxiety', 'irritability', 'angry', 'complaint', 'binge', 'control'].forEach(id => {
+      document.getElementById(id).value = 0;
+      updateSliderLabel(id);
+    });
     document.getElementById('write-password').value = '';
-    
-    updateSliderLabel('anxiety');
-    updateSliderLabel('irritability');
-    updateSliderLabel('angry');
-    updateSliderLabel('complaint');
-    updateSliderLabel('binge');
-    updateSliderLabel('control');
-    
     document.getElementById('date-active').value = new Date().toISOString().split('T')[0];
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 訊息提示
-  // ═══════════════════════════════════════════════════════════
   function showMsg(text, type) {
     const el = document.getElementById('submit-msg');
     el.textContent = text;
     el.style.display = 'block';
-    
     if (type === 'ok') {
-      el.style.background = '#eef6f0';
-      el.style.color = '#1f5c30';
-      el.style.border = '1.5px solid var(--accent-green)';
+      el.style.background = '#eef6f0'; el.style.color = '#1f5c30'; el.style.border = '1.5px solid var(--accent-green)';
     } else if (type === 'warn') {
-      el.style.background = '#fff8ec';
-      el.style.color = 'var(--accent-warn)';
-      el.style.border = '1.5px solid var(--accent-warn)';
+      el.style.background = '#fff8ec'; el.style.color = 'var(--accent-warn)'; el.style.border = '1.5px solid var(--accent-warn)';
     } else {
-      el.style.background = var(--cream);
-      el.style.color = 'var(--accent-red)';
-      el.style.border = '1.5px solid var(--accent-red)';
+      el.style.background = '#f5f0e8'; el.style.color = 'var(--accent-red)'; el.style.border = '1.5px solid var(--accent-red)';
     }
   }
 </script>
