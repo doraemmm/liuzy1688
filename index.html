@@ -291,22 +291,18 @@
     white-space: nowrap;
   }
 
-  /* ─── 歷史紀錄表 ─── */
-  .log-container {
-    max-width: 900px;
-    margin: 16px auto 0;
-    padding: 0 48px;
-  }
-
+  /* ─── 歷史紀錄表外層容器（強制橫向滾動條） ─── */
   .scroll-wrap {
     max-height: 500px;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: auto !important; /* 強制開啟橫向 Scroll bar */
     -webkit-overflow-scrolling: touch;
     border: 2px solid var(--border);
     background: var(--warm-white);
     border-radius: 8px;
     box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.02);
     transition: all 0.3s ease;
+    width: 100%;
   }
 
   table {
@@ -314,7 +310,16 @@
     border-collapse: separate;
     border-spacing: 0;
     font-size: 0.85rem;
-    min-width: 750px; /* 增加寬度以包容備註欄位 */
+    min-width: 850px; /* 拉大寬度底線，逼出滾動條 */
+  }
+
+  thead th, tbody td {
+    min-width: 80px;
+    padding: 12px 10px;
+  }
+
+  thead th:first-child, tbody td:first-child {
+    min-width: 110px; 
   }
 
   thead th {
@@ -322,7 +327,6 @@
     top: 0;
     z-index: 10;
     background: #e6e0d3;
-    padding: 12px 10px;
     text-align: center;
     box-shadow: 0 2px 0 var(--border);
     transition: background 0.3s ease;
@@ -331,6 +335,7 @@
     color: var(--ink-light);
   }
 
+  /* 表頭日期欄：不透明置頂 */
   thead th:first-child {
     position: sticky;
     left: 0;
@@ -341,12 +346,12 @@
 
   tbody td {
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    padding: 10px;
     text-align: center;
     transition: background 0.15s;
     font-weight: 700;
   }
 
+  /* 核心修正：第一個單元格（日期）100% 實色不透明，橫向捲動絕不重疊透光 */
   tbody td:first-child {
     position: sticky;
     left: 0;
@@ -372,15 +377,15 @@
     background-color: #dad2c4 !important;
   }
 
-  /* 備註文字向左對齊以利閱讀 */
+  /* 核心修正：備註欄位完全自適應，內容有多長就撐多寬，絕不限制、絕不點點點 */
   .td-note {
     text-align: left !important;
-    max-width: 180px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap !important;
+    width: auto !important;
+    padding-right: 20px !important;
   }
 
+  /* 顯示全部按鈕容器與客製化 UI 樣式 */
   .toggle-container {
     text-align: center;
     padding: 20px 0;
@@ -436,7 +441,7 @@
 <header>
   <div class="header-inner">
     <div class="title-block">
-      <h1>貼心寶貝🐷老公情緒日誌</h1>
+      <h1>老公情緒日誌</h1>
       <p class="subtitle">用心記錄每一天的情緒波動</p>
     </div>
   </div>
@@ -451,7 +456,7 @@
 
     <div class="form-field-row">
       <div class="form-field">
-        <label>😣 焦慮</label>
+        <label>😰 焦慮</label>
         <div class="slider-group">
           <div class="slider-container">
             <input type="range" id="anxiety" min="0" max="10" value="0" oninput="updateSliderLabel('anxiety')">
@@ -461,7 +466,7 @@
       </div>
 
       <div class="form-field">
-        <label>🤨 煩躁</label>
+        <label>😤 煩躁</label>
         <div class="slider-group">
           <div class="slider-container">
             <input type="range" id="irritability" min="0" max="10" value="0" oninput="updateSliderLabel('irritability')">
@@ -473,7 +478,7 @@
 
     <div class="form-field-row">
       <div class="form-field">
-        <label>😡 爆氣</label>
+        <label>🔥 爆氣</label>
         <div class="slider-group">
           <div class="slider-container">
             <input type="range" id="angry" min="0" max="10" value="0" oninput="updateSliderLabel('angry')">
@@ -544,7 +549,8 @@
           <th>客怨</th>
           <th>暴飲暴食</th>
           <th>情緒控制</th>
-          <th>備註</th> </tr>
+          <th>備註</th>
+        </tr>
       </thead>
       <tbody id="history-tbody">
         <tr><td colspan="8" style="padding: 40px; color: var(--mood-color);">⏳ 資料努力載入中...</td></tr>
@@ -563,7 +569,7 @@
 
 <script>
   // ═══════════════════════════════════════════════════════════
-  // 配置區
+  // 配置區（請務必替換為你最新部署的 Web App 網址）
   // ═══════════════════════════════════════════════════════════
   const SHEET_ID = '1yytw3nVfDP1HMDoLGNDR-fEepmkwDjjo6L6b5lUGka8';
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJUNZkS6QVnb5H4gue9Pn3jPOp1rnFT6iZ71n0HzHOdzv0wB-cQ3yFb84jbWIJxkw/exec'; 
@@ -605,7 +611,7 @@
     return new Date(y, m, d).getTime();
   }
 
-  // 紅綠燈背景顏色
+  // 紅綠燈各單元格背景顏色與優化字體顏色控制
   function getColorStyle(valStr) {
     const val = parseInt(valStr);
     if (isNaN(val)) return '';
@@ -632,6 +638,7 @@
       if (data.error) throw new Error(data.error);
 
       allRecords = data;
+      // 升序排列：最舊的前端資料在最上方（6/12 帶頭衝）
       allRecords.sort((a, b) => parseDateString(a[0]) - parseDateString(b[0]));
       
       renderHistoryTable();
@@ -651,6 +658,7 @@
       return;
     }
 
+    // 正確的升序預設邏輯：未展開時 slice(0, 10)，絕對從第一筆資料（6/12）開始往後渲染 10 條
     let recordsToRender = allRecords;
     if (!showAll && allRecords.length > 10) {
       recordsToRender = allRecords.slice(0, 10);
@@ -664,7 +672,7 @@
       const complaint = record[4] || '0';
       const binge = record[5] || '0';
       const control = record[6] || '0';
-      const note = record[7] || ''; // 📝 讀取第 8 欄備註資料
+      const note = record[7] || ''; 
       
       tbody.innerHTML += `
         <tr>
@@ -675,7 +683,8 @@
           <td ${getColorStyle(complaint)}>${complaint}</td>
           <td ${getColorStyle(binge)}>${binge}</td>
           <td ${getColorStyle(control)}>${control}</td>
-          <td class="td-note" title="${note}">${note}</td> </tr>
+          <td class="td-note" title="${note}">${note}</td>
+        </tr>
       `;
     });
 
@@ -695,7 +704,7 @@
     renderHistoryTable();
   }
 
-  // 送出表單 (包含備註欄位)
+  // 送出表單且防禦 CORS 的嚴格密碼判別機制
   async function submitForm() {
     const password = document.getElementById('write-password').value.trim();
     if (!password) {
@@ -716,7 +725,7 @@
       complaint: parseInt(document.getElementById('complaint').value) || 0,
       binge: parseInt(document.getElementById('binge').value) || 0,
       control: parseInt(document.getElementById('control').value) || 0,
-      note: document.getElementById('note').value.trim() // 📝 【新核心】打包備註文字送出
+      note: document.getElementById('note').value.trim() 
     };
 
     try {
@@ -752,7 +761,7 @@
       document.getElementById(id).value = 0;
       updateSliderLabel(id);
     });
-    document.getElementById('note').value = ''; // 📝 重置清空備註框
+    document.getElementById('note').value = ''; 
     document.getElementById('write-password').value = '';
     document.getElementById('date-active').value = new Date().toISOString().split('T')[0];
   }
