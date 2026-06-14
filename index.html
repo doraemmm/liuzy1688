@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>老公情緒日誌</title>
+
+<style>
+  :root {
+    --cream: #f5f0e8;
+    --warm-white: #faf7f2;
+    --ink: #1a1410;
+    --ink-light: #3d3228;
+    --mood-color: #b8826b;
+    --mood-pale: #f5e8e0;
+    --mood-deep: #7a4a2e;
+    --border: #d4c9b5;
+    
+    --accent-red: #c44b3a;
+    --accent-blue: #5b8fa8;
+    --accent-green: #4a8c5c;
+    --accent-warn: #c47a1a;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body, button, input, select, textarea, h1, h2, h3, .sel-btn, .selector-label, .subtitle {
+    font-family: '微軟正黑體', 'Microsoft JhengHei', sans-serif !important;
+  }
+
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-weight: 700;
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    padding: 40px 48px 32px;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .header-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .title-block h1 {
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    font-weight: 900;
+  }
+
+  .title-block h1 em {
+    font-style: italic;
+    color: var(--mood-color);
+  }
+
+  .title-block .subtitle {
+    margin-top: 8px;
+    font-size: 0.95rem;
+    letter-spacing: 0.1em;
+    color: var(--ink-light);
+  }
+
+  /* ─── FORM ─── */
+  .form-container {
+    max-width: 900px;
+    margin: 32px auto 0;
+    padding: 0 48px;
+  }
+
+  .form-card {
+    background: var(--warm-white);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    padding: 28px 24px;
+    transition: all 0.3s ease;
+    width: 100%;
+  }
+
+  .form-field {
+    width: 100%;
+    margin-bottom: 18px;
+  }
+
+  .form-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  .form-field label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 900;
+    margin-bottom: 10px;
+    color: var(--ink-light);
+    white-space: nowrap;
+  }
+
+  .form-field input[type="date"] {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    outline: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+  }
+
+  .form-field input[type="date"]:focus {
+    border-color: var(--mood-color);
+    box-shadow: 0 0 0 3px var(--mood-pale);
+    background: #fff;
+  }
+
+  /* ─── 滑塊樣式 ─── */
+  .slider-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .slider-container {
+    flex: 1;
+    position: relative;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #f0e8e0, var(--mood-color), #8b5a2b);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--mood-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--mood-color);
+    cursor: pointer;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+  }
+
+  input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+
+  input[type="range"]::-moz-range-track {
+    background: transparent;
+    border: none;
+  }
+
+  input[type="range"]::-moz-range-progress {
+    background: linear-gradient(to right, #f0e8e0, var(--mood-color));
+    height: 6px;
+    border-radius: 3px;
+  }
+
+  .slider-value {
+    min-width: 40px;
+    padding: 6px 12px;
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 900;
+    color: var(--mood-deep);
+  }
+
+  /* ─── 密碼欄 ─── */
+  .form-field input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    outline: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+  }
+
+  .form-field input[type="password"]:focus {
+    border-color: var(--mood-color);
+    box-shadow: 0 0 0 3px var(--mood-pale);
+    background: #fff;
+  }
+
+  .btn-submit {
+    width: 100%;
+    padding: 14px;
+    margin-top: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #fff;
+    background: var(--mood-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-submit:disabled {
+    background: var(--border);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  #submit-msg {
+    display: none;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-top: 8px;
+    font-weight: 900;
+  }
+
+  /* ─── 分隔線 & 小標題 ─── */
+  .section-head {
+    max-width: 900px;
+    margin: 40px auto 0;
+    padding: 0 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .section-head::before,
+  .section-head::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    transition: background 0.3s ease;
+  }
+
+  .section-head h2 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  /* ─── 歷史紀錄表 ─── */
+  .log-container {
+    max-width: 900px;
+    margin: 16px auto 0;
+    padding: 0 48px;
+  }
+
+  .scroll-wrap {
+    max-height: 500px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 2px solid var(--border);
+    background: var(--warm-white);
+    border-radius: 8px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s ease;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.85rem;
+    min-width: 600px;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #e6e0d3;
+    padding: 12px 10px;
+    text-align: center;
+    box-shadow: 0 2px 0 var(--border);
+    transition: background 0.3s ease;
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: var(--ink-light);
+  }
+
+  thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 11;
+    box-shadow: 2px 2px 0 var(--border);
+  }
+
+  tbody td {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 10px;
+    text-align: center;
+    transition: background 0.15s;
+    font-weight: 700;
+  }
+
+  tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 9;
+    background: var(--warm-white);
+    font-weight: 900;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+  }
+
+  tbody tr:nth-child(even) td {
+    background-color: rgba(0, 0, 0, 0.015);
+  }
+
+  tbody tr:nth-child(even) td:first-child {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  tbody tr:hover td {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  tbody tr:hover td:first-child {
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+
+  /* ─── 警告行樣式 ─── */
+  .row-warn td {
+    background-color: #fff2f0 !important;
+    color: var(--accent-red) !important;
+    font-weight: 900;
+  }
+
+  .row-alert td {
+    background-color: #fffbf0 !important;
+    color: var(--accent-warn) !important;
+    font-weight: 900;
+  }
+
+  .page-end {
+    height: calc(40px + env(safe-area-inset-bottom));
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .form-card {
+    animation: fadeUp 0.5s ease both;
+  }
+
+  /* ─── RWD ─── */
+  @media (max-width: 640px) {
+    header {
+      padding: 28px 20px 24px;
+    }
+
+    .form-container,
+    .section-head,
+    .log-container {
+      padding: 0 20px;
+    }
+
+    .form-card {
+      padding: 20px 16px;
+    }
+
+    .form-field-row {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    table {
+      font-size: 0.75rem;
+      min-width: 500px;
+    }
+
+    thead th {
+      padding: 8px 6px;
+    }
+
+    tbody td {
+      padding: 8px 6px;
+    }
+  }
+
+  @media (min-width: 641px) and (max-width: 900px) {
+    .form-container,
+    .section-head,
+    .log-container {
+      padding: 0 32px;
+    }
+
+    .form-card {
+      padding: 24px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="title-block">
+      <h1>😊 <em>老公</em> 情緒日誌</h1>
+      <p class="subtitle">用心記錄每一天的情緒波動</p>
+    </div>
+  </div>
+</header>
+
+<div class="form-container">
+  <div class="form-card">
+    <div class="form-field">
+      <label>日期</label>
+      <input type="date" id="date-active">
+    </div>
+
+    <!-- 6項情緒指標，分兩欄排列 -->
+    <div class="form-field-row">
+      <div class="form-field">
+        <label>😰 焦慮</label>
+        <div class="slider-group">
+          <div class="slider-container">
+            <input type="range" id="anxiety" min="0" max="10" value="0" oninput="updateSliderLabel('anxiety')">
+          </div>
+          <span class="slider-value" id="anxiety-val">0</span>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label>😤 煩躁</label>
+        <div class="slider-group">
+          <div class="slider-container">
+            <input type="range" id="irritability" min="0" max="10" value="0" oninput="updateSliderLabel('irritability')">
+          </div>
+          <span class="slider-value" id="irritability-val">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-field-row">
+      <div class="form-field">
+        <label>🔥 爆氣</label>
+        <div class="slider-group">
+          <div class="slider-container">
+            <input type="range" id="angry" min="0" max="10" value="0" oninput="updateSliderLabel('angry')">
+          </div>
+          <span class="slider-value" id="angry-val">0</span>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label>😤 客怨</label>
+        <div class="slider-group">
+          <div class="slider-container">
+            <input type="range" id="complaint" min="0" max="10" value="0" oninput="updateSliderLabel('complaint')">
+          </div>
+          <span class="slider-value" id="complaint-val">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-field-row">
+      <div class="form-field">
+        <label>🍴 暴飲暴食</label>
+        <div class="slider-group">
+          <div class="slider-container">
+            <input type="range" id="binge" min="0" max="10" value="0" oninput="updateSliderLabel('binge')">
+          </div>
+          <span class="slider-value" id="binge-val">0</span>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label>✨ 情緒控制</label>
+        <div class="slider-group">
+          <div class="slider-container">
+            <input type="range" id="control" min="0" max="10" value="0" oninput="updateSliderLabel('control')">
+          </div>
+          <span class="slider-value" id="control-val">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label>密碼</label>
+      <input type="password" id="write-password" placeholder="請輸入密碼">
+    </div>
+
+    <div id="submit-msg"></div>
+
+    <button class="btn-submit" id="submit-btn" onclick="submitForm()">🚀 送出紀錄</button>
+  </div>
+</div>
+
+<div class="section-head"><h2>📊 歷史紀錄</h2></div>
+<div class="log-container">
+  <div class="scroll-wrap">
+    <table>
+      <thead id="history-thead">
+        <tr>
+          <th>日期</th>
+          <th>焦慮</th>
+          <th>煩躁</th>
+          <th>爆氣</th>
+          <th>客怨</th>
+          <th>暴飲暴食</th>
+          <th>情緒控制</th>
+        </tr>
+      </thead>
+      <tbody id="history-tbody">
+        <tr><td colspan="7" style="padding: 40px; color: var(--mood-color);">⏳ 資料努力載入中...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="page-end"></div>
+
+<script>
+  // ═══════════════════════════════════════════════════════════
+  // 配置區 (需要修改以下三項)
+  // ═══════════════════════════════════════════════════════════
+  
+  const SHEET_ID = '1yytw3nVfDP1HMDoLGNDR-fEepmkwDjjo6L6b5lUGka8';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJUNZkS6QVnb5H4gue9Pn3jPOp1rnFT6iZ71n0HzHOdzv0wB-cQ3yFb84jbWIJxkw/exec'; //  GAS 部署網址
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+
+  // ═══════════════════════════════════════════════════════════
+  // 全局變數
+  // ═══════════════════════════════════════════════════════════
+  let allRecords = [];
+
+  // ═══════════════════════════════════════════════════════════
+  // 初始化
+  // ═══════════════════════════════════════════════════════════
+  document.getElementById('date-active').value = new Date().toISOString().split('T')[0];
+
+  // 頁面載入時拉取資料
+  window.addEventListener('load', () => {
+    fetchSheetData();
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // 滑塊更新顯示值
+  // ═══════════════════════════════════════════════════════════
+  function updateSliderLabel(id) {
+    const slider = document.getElementById(id);
+    const valDisplay = document.getElementById(id + '-val');
+    valDisplay.textContent = slider.value;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 日期解析 (同喜樂版本邏輯)
+  // ═══════════════════════════════════════════════════════════
+  function parseDateString(ds) {
+    if (!ds) return 0;
+    let s = ds.replace(/-/g, '/').trim();
+    let parts = s.split('/');
+    let y = new Date().getFullYear(), m = 0, d = 1;
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        y = parseInt(parts[0], 10);
+        m = parseInt(parts[1], 10) - 1;
+        d = parseInt(parts[2], 10);
+      } else if (parts[2].length === 4) {
+        m = parseInt(parts[0], 10) - 1;
+        d = parseInt(parts[1], 10);
+        y = parseInt(parts[2], 10);
+      }
+    } else if (parts.length === 2) {
+      m = parseInt(parts[0], 10) - 1;
+      d = parseInt(parts[1], 10);
+    } else {
+      let t = new Date(ds).getTime();
+      return isNaN(t) ? 0 : t;
+    }
+    return new Date(y, m, d).getTime();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 拉取 CSV 資料
+  // ═══════════════════════════════════════════════════════════
+  async function fetchSheetData() {
+    const tbody = document.getElementById('history-tbody');
+    tbody.innerHTML = `<tr><td colspan="7" style="padding:40px; color:var(--mood-color);">⏳ 資料努力載入中...</td></tr>`;
+    
+    try {
+      const res = await fetch(csvUrl);
+      const csv = await res.text();
+      const rows = csv.split('\n').map(r => r.trim()).filter(r => r);
+      
+      // 去重（同一日期只保留最新一筆）
+      const uniqueRecords = new Map();
+      rows.slice(1).forEach(line => {
+        const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+          .map(s => s.replace(/^"|"$/g, '').trim());
+        
+        if (cols[0]) {
+          const timeKey = parseDateString(cols[0]);
+          if (timeKey > 0) {
+            uniqueRecords.set(timeKey, cols);
+          }
+        }
+      });
+      
+      allRecords = Array.from(uniqueRecords.values());
+      allRecords.sort((a, b) => parseDateString(b[0]) - parseDateString(a[0]));
+      
+      renderHistoryTable();
+    } catch (e) {
+      console.error('資料載入失敗:', e);
+      tbody.innerHTML = `<tr><td colspan="7">讀取失敗，請稍後重試。</td></tr>`;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 渲染歷史紀錄表
+  // ═══════════════════════════════════════════════════════════
+  function renderHistoryTable() {
+    const tbody = document.getElementById('history-tbody');
+    tbody.innerHTML = '';
+    
+    if (allRecords.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="padding:40px; color:var(--ink-light);">還沒有紀錄呢～</td></tr>`;
+      return;
+    }
+    
+    allRecords.forEach(record => {
+      const date = record[0] || '—';
+      const anxiety = record[1] || '—';
+      const irritability = record[2] || '—';
+      const angry = record[3] || '—';
+      const complaint = record[4] || '—';
+      const binge = record[5] || '—';
+      const control = record[6] || '—';
+      
+      // 判斷是否高警訊 (焦慮、煩躁、爆氣、客怨 > 6 為警訊)
+      const isWarn = parseInt(anxiety) > 6 || parseInt(irritability) > 6 || parseInt(angry) > 6 || parseInt(complaint) > 6;
+      const isAlert = parseInt(binge) > 6;
+      
+      const rowClass = isWarn ? 'row-warn' : (isAlert ? 'row-alert' : '');
+      
+      tbody.innerHTML += `
+        <tr class="${rowClass}">
+          <td>${date}</td>
+          <td>${anxiety}</td>
+          <td>${irritability}</td>
+          <td>${angry}</td>
+          <td>${complaint}</td>
+          <td>${binge}</td>
+          <td>${control}</td>
+        </tr>
+      `;
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 送出表單
+  // ═══════════════════════════════════════════════════════════
+  async function submitForm() {
+    const password = document.getElementById('write-password').value.trim();
+    
+    if (!password) {
+      showMsg('請輸入密碼', 'warn');
+      return;
+    }
+    
+    if (!GAS_URL) {
+      showMsg('❌ GAS 服務尚未設定，請聯繫管理員', 'err');
+      return;
+    }
+    
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ 拼命寫入中...';
+
+    const payload = {
+      password,
+      date: document.getElementById('date-active').value,
+      anxiety: parseInt(document.getElementById('anxiety').value) || 0,
+      irritability: parseInt(document.getElementById('irritability').value) || 0,
+      angry: parseInt(document.getElementById('angry').value) || 0,
+      complaint: parseInt(document.getElementById('complaint').value) || 0,
+      binge: parseInt(document.getElementById('binge').value) || 0,
+      control: parseInt(document.getElementById('control').value) || 0,
+    };
+
+    try {
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: JSON.stringify(payload)
+      });
+
+      // 等待 1.5 秒讓 Sheet 同步，再重新拉取資料
+      await new Promise(r => setTimeout(r, 1500));
+      await fetchSheetData();
+
+      // 驗證是否成功寫入
+      const targetDate = document.getElementById('date-active').value;
+      const latestRecord = allRecords[0];
+      const latestDateTs = latestRecord ? parseDateString(latestRecord[0]) : 0;
+      const targetTs = parseDateString(targetDate);
+
+      if (latestDateTs === targetTs) {
+        showMsg('✅ 已完美寫入 Google Sheet', 'ok');
+        // 重置表單
+        resetForm();
+      } else {
+        showMsg('📨 已送出，請稍後重整確認', 'warn');
+      }
+
+    } catch (e) {
+      console.error('送出失敗:', e);
+      showMsg('❌ 送出失敗，請檢查網路連線', 'err');
+    }
+
+    btn.disabled = false;
+    btn.textContent = '🚀 送出紀錄';
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 重置表單
+  // ═══════════════════════════════════════════════════════════
+  function resetForm() {
+    document.getElementById('anxiety').value = 0;
+    document.getElementById('irritability').value = 0;
+    document.getElementById('angry').value = 0;
+    document.getElementById('complaint').value = 0;
+    document.getElementById('binge').value = 0;
+    document.getElementById('control').value = 0;
+    document.getElementById('write-password').value = '';
+    
+    updateSliderLabel('anxiety');
+    updateSliderLabel('irritability');
+    updateSliderLabel('angry');
+    updateSliderLabel('complaint');
+    updateSliderLabel('binge');
+    updateSliderLabel('control');
+    
+    document.getElementById('date-active').value = new Date().toISOString().split('T')[0];
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 訊息提示
+  // ═══════════════════════════════════════════════════════════
+  function showMsg(text, type) {
+    const el = document.getElementById('submit-msg');
+    el.textContent = text;
+    el.style.display = 'block';
+    
+    if (type === 'ok') {
+      el.style.background = '#eef6f0';
+      el.style.color = '#1f5c30';
+      el.style.border = '1.5px solid var(--accent-green)';
+    } else if (type === 'warn') {
+      el.style.background = '#fff8ec';
+      el.style.color = 'var(--accent-warn)';
+      el.style.border = '1.5px solid var(--accent-warn)';
+    } else {
+      el.style.background = var(--cream);
+      el.style.color = 'var(--accent-red)';
+      el.style.border = '1.5px solid var(--accent-red)';
+    }
+  }
+</script>
+</body>
+</html>
