@@ -318,6 +318,7 @@
     transition: all 0.3s ease;
   }
 
+/* ─── 歷史紀錄表（修正日期欄重疊與透光問題） ─── */
   table {
     width: 100%;
     border-collapse: separate;
@@ -340,10 +341,12 @@
     color: var(--ink-light);
   }
 
+  /* 表頭的第一個單元格（日期的標題）也必須是不透明且層級最高 */
   thead th:first-child {
     position: sticky;
     left: 0;
-    z-index: 11;
+    z-index: 12; /* 提高層級，確保滾動時壓過所有東西 */
+    background: #e6e0d3 !important;
     box-shadow: 2px 2px 0 var(--border);
   }
 
@@ -355,29 +358,33 @@
     font-weight: 700;
   }
 
+  /* 【核心修正】第一欄（日期欄）單元格：強制 100% 不透明 */
   tbody td:first-child {
     position: sticky;
     left: 0;
     z-index: 9;
-    background: var(--warm-white);
+    background-color: #faf7f2 !important; /* 使用 var(--warm-white) 的不透明實色 */
     font-weight: 900;
-    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06); /* 右側陰影邊界 */
   }
 
+  /* 奇偶數行交替背景色（同樣要確保第一欄不被透明度搞砸） */
   tbody tr:nth-child(even) td {
     background-color: rgba(0, 0, 0, 0.015);
   }
 
+  /* 偶數行的第一欄：同樣要給它一個 100% 不透明的實色，避免透光 */
   tbody tr:nth-child(even) td:first-child {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: #f5f0e8 !important; /* 使用 var(--cream) 的不透明實色做交替 */
   }
 
+  /* 滑鼠懸停效果：滑過去時第一欄也要跟著變色，但依優保持不透明 */
   tbody tr:hover td {
     background-color: rgba(0, 0, 0, 0.04);
   }
 
   tbody tr:hover td:first-child {
-    background-color: rgba(0, 0, 0, 0.06);
+    background-color: #dad2c4 !important; /* 懸停時的第一欄深色不透明背景 */
   }
 
   /* ─── 【需求 2】按鈕 UI 客製化樣式外觀 ─── */
