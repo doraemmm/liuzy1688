@@ -581,11 +581,13 @@
 <div class="page-end"></div>
 <script>
   // ═══════════════════════════════════════════════════════════
-  // 配置區（請務必把 GAS_URL 換成你重新部署後的最新網址！）
+  // 配置區（請確保 GAS_URL 填寫正確）
   // ═══════════════════════════════════════════════════════════
+  const SHEET_ID = '1yytw3nVfDP1HMDoLGNDR-fEepmkwDjjo6L6b5lUGka8';
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJUNZkS6QVnb5H4gue9Pn3jPOp1rnFT6iZ71n0HzHOdzv0wB-cQ3yFb84jbWIJxkw/exec'; 
 
   let allRecords = [];
+  let showAll = false; // 控制是否顯示全部的開關
 
   // 初始化日期為今天
   document.getElementById('date-active').value = new Date().toISOString().split('T')[0];
@@ -621,13 +623,35 @@
     return new Date(y, m, d).getTime();
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 透過 GAS 的 doGet 撈資料，100% 免疫任何瀏覽器的 CORS 阻擋
-  // ═══════════════════════════════════════════════════════════
+  // 根據分數取得對應的背景顏色與文字顏色（完美對應紅綠燈需求）
+  function getColorStyle(valStr) {
+    const val = parseInt(valStr);
+    if (isNaN(val)) return '';
+    
+    let bg = '';
+    let text = '#1a1410'; // 預設深色字
+
+    if (val === 0) {
+      bg = '#00ff00';
+    } else if (val >= 1 && val <= 3) {
+      bg = '#b6d7a8';
+    } else if (val >= 4 && val <= 6) {
+      bg = '#ffff00';
+    } else if (val >= 7 && val <= 9) {
+      bg = '#e06666';
+      text = '#ffffff'; // 分數高用白字比較好看
+    } else if (val === 10) {
+      bg = '#ff0000';
+      text = '#ffffff'; // 分數爆表用白字
+    }
+
+    return `style="background-color: ${bg} !important; color: ${text} !important;"`;
+  }
+
+  // 撈取資料
   async function fetchSheetData() {
     const tbody = document.getElementById('history-tbody');
     try {
-      // 透過 GET 請求去戳 GAS，GAS 撈到資料後會回傳 JSON 陣列
       const res = await fetch(GAS_URL, { method: 'GET' });
       if (!res.ok) throw new Error('網路回應不成功');
       const data = await res.json();
@@ -637,17 +661,17 @@
       }
 
       allRecords = data;
-      // 依照日期從新到舊排序
-      allRecords.sort((a, b) => parseDateString(b[0]) - parseDateString(a[0]));
+      // 【需求 1】改成「升序排列」（舊的在上面，新的在下面）
+      allRecords.sort((a, b) => parseDateString(a[0]) - parseDateString(b[0]));
       
       renderHistoryTable();
     } catch (e) {
       console.error('資料載入失敗:', e);
-      tbody.innerHTML = `<tr><td colspan="7" style="padding: 40px; color: var(--accent-red);">❌ 歷史紀錄載入失敗！請確認 GAS 後端是否有正常部署，且 index.html 中的 GAS_URL 是否填寫正確！</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="padding: 40px; color: var(--accent-red);">❌ 歷史紀錄載入失敗！請確認 GAS 後端是否有正常部署！</td></tr>`;
     }
   }
 
-  // 渲染歷史紀錄表
+  // 渲染歷史紀錄表與【顯示全部】按鈕
   function renderHistoryTable() {
     const tbody = document.getElementById('history-tbody');
     tbody.innerHTML = '';
@@ -656,8 +680,15 @@
       tbody.innerHTML = `<tr><td colspan="7" style="padding:40px; color:var(--ink-light);">還沒有紀錄呢～</td></tr>`;
       return;
     }
+
+    // 【需求 3】實作最新 10 條的逻辑
+    // 因為現在是升序排列（最下面最新），所以最新 10 條等於是陣列最後面的 10 筆資料
+    let recordsToRender = allRecords;
+    if (!showAll && allRecords.length > 10) {
+      recordsToRender = allRecords.slice(-10);
+    }
     
-    allRecords.forEach(record => {
+    recordsToRender.forEach(record => {
       const date = record[0] || '—';
       const anxiety = record[1] || '0';
       const irritability = record[2] || '0';
@@ -666,22 +697,46 @@
       const binge = record[5] || '0';
       const control = record[6] || '0';
       
-      const isWarn = parseInt(anxiety) > 6 || parseInt(irritability) > 6 || parseInt(angry) > 6 || parseInt(complaint) > 6;
-      const isAlert = parseInt(binge) > 6;
-      const rowClass = isWarn ? 'row-warn' : (isAlert ? 'row-alert' : '');
-      
+      // 【需求 2】各別單元格（td）帶入 getColorStyle 染色
       tbody.innerHTML += `
-        <tr class="${rowClass}">
+        <tr>
           <td>${date}</td>
-          <td>${anxiety}</td>
-          <td>${irritability}</td>
-          <td>${angry}</td>
-          <td>${complaint}</td>
-          <td>${binge}</td>
-          <td>${control}</td>
+          <td ${getColorStyle(anxiety)}>${anxiety}</td>
+          <td ${getColorStyle(irritability)}>${irritability}</td>
+          <td ${getColorStyle(angry)}>${angry}</td>
+          <td ${getColorStyle(complaint)}>${complaint}</td>
+          <td ${getColorStyle(binge)}>${binge}</td>
+          <td ${getColorStyle(control)}>${control}</td>
         </tr>
       `;
     });
+
+    // 處理【顯示全部】按鈕的隱現（如果大於 10 條才需要這個按鈕）
+    let tfoot = document.getElementById('history-tfoot');
+    if (allRecords.length > 10) {
+      if (!tfoot) {
+        tfoot = document.createElement('tfoot');
+        tfoot.id = 'history-tfoot';
+        tbody.parentNode.appendChild(tfoot);
+      }
+      tfoot.innerHTML = `
+        <tr>
+          <td colspan="7" style="padding: 12px; background: var(--warm-white); border-top: 1px solid var(--border);">
+            <button class="btn-submit" style="margin-top:0; padding: 8px 16px; width: auto; font-size: 0.9rem;" onclick="toggleShowAll()">
+              ${showAll ? '🔼 隱藏過多資料' : '🔽 顯示全部資料'}
+            </button>
+          </td>
+        </tr>
+      `;
+    } else if (tfoot) {
+      tfoot.remove(); // 資料少於 10 條時直接移除按鈕
+    }
+  }
+
+  // 切換顯示全部狀態
+  function toggleShowAll() {
+    showAll = !showAll;
+    renderHistoryTable();
   }
 
   // 送出表單
@@ -716,7 +771,6 @@
       });
 
       showMsg('📨 資料已送出！正在同步後端資料...', 'warn');
-      // 延遲 2.5 秒給後端試算表更新時間，再重新抓取
       await new Promise(r => setTimeout(r, 2500));
       await fetchSheetData();
       showMsg('✅ 寫入成功！歷史紀錄已更新', 'ok');
@@ -752,5 +806,6 @@
     }
   }
 </script>
+
 </body>
 </html>
