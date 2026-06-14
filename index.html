@@ -589,7 +589,7 @@
 
 <script>
   // ═══════════════════════════════════════════════════════════
-  // 配置區
+  // 配置區（請務必把 GAS_URL 換成你重新部署後的最新網址！）
   // ═══════════════════════════════════════════════════════════
   const SHEET_ID = '1yytw3nVfDP1HMDoLGNDR-fEepmkwDjjo6L6b5lUGka8';
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyRJUNZkS6QVnb5H4gue9Pn3jPOp1rnFT6iZ71n0HzHOdzv0wB-cQ3yFb84jbWIJxkw/exec'; 
@@ -631,32 +631,23 @@
     return new Date(y, m, d).getTime();
   }
 
-  // 完美對應紅綠燈背景顏色需求
+  // 紅綠燈背景顏色
   function getColorStyle(valStr) {
     const val = parseInt(valStr);
     if (isNaN(val)) return '';
-    
     let bg = '';
     let text = '#1a1410'; 
 
-    if (val === 0) {
-      bg = '#00ff00';
-    } else if (val >= 1 && val <= 3) {
-      bg = '#b6d7a8';
-    } else if (val >= 4 && val <= 6) {
-      bg = '#ffff00';
-    } else if (val >= 7 && val <= 9) {
-      bg = '#e06666';
-      text = '#ffffff'; 
-    } else if (val === 10) {
-      bg = '#ff0000';
-      text = '#ffffff'; 
-    }
+    if (val === 0) { bg = '#00ff00'; }
+    else if (val >= 1 && val <= 3) { bg = '#b6d7a8'; }
+    else if (val >= 4 && val <= 6) { bg = '#ffff00'; }
+    else if (val >= 7 && val <= 9) { bg = '#e06666'; text = '#ffffff'; }
+    else if (val === 10) { bg = '#ff0000'; text = '#ffffff'; }
 
     return `style="background-color: ${bg} !important; color: ${text} !important;"`;
   }
 
-  // 撈取資料
+  // 撈取後端資料
   async function fetchSheetData() {
     const tbody = document.getElementById('history-tbody');
     try {
@@ -664,12 +655,9 @@
       if (!res.ok) throw new Error('網路回應不成功');
       const data = await res.json();
       
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (data.error) throw new Error(data.error);
 
       allRecords = data;
-      // 日期「升序排列」（最舊的 6/12 在第一筆資料）
       allRecords.sort((a, b) => parseDateString(a[0]) - parseDateString(b[0]));
       
       renderHistoryTable();
@@ -679,7 +667,7 @@
     }
   }
 
-  // 渲染歷史紀錄表與區塊控制
+  // 渲染歷史紀錄表（預設顯示最舊前 10 條）
   function renderHistoryTable() {
     const tbody = document.getElementById('history-tbody');
     tbody.innerHTML = '';
@@ -689,9 +677,6 @@
       return;
     }
 
-    // 【核心邏輯修正】
-    // 因為是升序排列，第一筆是 6/12。
-    // 預設未點擊時，我們用 slice(0, 10) 撈出開頭的前 10 筆資料，這樣顯示就會百分之百從第一筆（6/12）開始啦！
     let recordsToRender = allRecords;
     if (!showAll && allRecords.length > 10) {
       recordsToRender = allRecords.slice(0, 10);
@@ -719,7 +704,6 @@
       `;
     });
 
-    // 控制【顯示全部】按鈕的隱現與外觀控制
     const toggleBox = document.getElementById('toggle-box');
     const toggleBtnText = document.getElementById('toggle-btn-text');
     
@@ -731,13 +715,14 @@
     }
   }
 
-  // 切換顯示全部狀態
   function toggleShowAll() {
     showAll = !showAll;
     renderHistoryTable();
   }
 
-  // 送出表單
+  // ═══════════════════════════════════════════════════════════
+  // 🚀 核心大改版：發送純文字繞過 CORS，並精準解析密碼對錯！
+  // ═══════════════════════════════════════════════════════════
   async function submitForm() {
     const password = document.getElementById('write-password').value.trim();
     if (!password) {
@@ -750,7 +735,7 @@
     btn.textContent = '⏳ 拼命寫入中...';
 
     const payload = {
-      password,
+      password: password,
       date: document.getElementById('date-active').value,
       anxiety: parseInt(document.getElementById('anxiety').value) || 0,
       irritability: parseInt(document.getElementById('irritability').value) || 0,
@@ -761,21 +746,29 @@
     };
 
     try {
-      await fetch(GAS_URL, {
+      // 用 text/plain 發送，避開瀏覽器的 Options 預檢，保證 GAS 能順利收到！
+      const res = await fetch(GAS_URL, {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
         body: JSON.stringify(payload)
       });
 
-      showMsg('📨 資料已送出！正在同步後端資料...', 'warn');
-      await new Promise(r => setTimeout(r, 2500));
-      await fetchSheetData();
-      showMsg('✅ 寫入成功！歷史紀錄已更新', 'ok');
-      resetForm();
+      if (!res.ok) throw new Error('伺服器無回應');
+      
+      const result = await res.json(); 
+
+      if (result.ok === true) {
+        showMsg('✅ 寫入成功！歷史紀錄已同步更新', 'ok');
+        resetForm();
+        await fetchSheetData(); // 成功才刷新歷史紀錄表
+      } else {
+        // 這邊就能鐵證如山地抓到 GAS 回傳的「密碼錯誤」！
+        showMsg(`❌ 送出失敗：${result.msg || '密碼錯誤！'}`, 'err');
+      }
+
     } catch (e) {
       console.error('送出失敗:', e);
-      showMsg('❌ 送出失敗，請檢查網路連線', 'err');
+      showMsg('❌ 網路傳輸異常或密碼錯誤，請檢查後端 GAS 是否部署正確！', 'err');
     }
 
     btn.disabled = false;
@@ -804,5 +797,6 @@
     }
   }
 </script>
+
 </body>
 </html>
